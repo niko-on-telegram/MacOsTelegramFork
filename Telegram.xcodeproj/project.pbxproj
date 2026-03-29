@@ -7692,8 +7692,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "
-";
+			shellScript = "normalize_framework() {\n  FW=\"$1\"\n  NAME=$(basename \"$FW\" .framework)\n\n  if [ ! -f \"$FW/$NAME\" ] || [ ! -f \"$FW/Info.plist\" ]; then\n    return 0\n  fi\n\n  mkdir -p \"$FW/Versions/A/Resources\"\n  mv \"$FW/$NAME\" \"$FW/Versions/A/$NAME\"\n  mv \"$FW/Info.plist\" \"$FW/Versions/A/Resources/Info.plist\"\n  ln -sfn A \"$FW/Versions/Current\"\n  ln -sfn Versions/Current/$NAME \"$FW/$NAME\"\n  ln -sfn Versions/Current/Resources \"$FW/Resources\"\n}\n\nFRAMEWORKS_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nnormalize_framework \"$FRAMEWORKS_DIR/GoogleAppMeasurement.framework\"\nnormalize_framework \"$FRAMEWORKS_DIR/FirebaseAnalytics.framework\"\nnormalize_framework \"$FRAMEWORKS_DIR/GoogleAppMeasurementIdentitySupport.framework\"\n";
 		};
 		C2D85FD51F25FE5400EDEA15 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -9006,7 +9005,6 @@
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-Wl,-ld_classic",
-					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/macosx/libswiftAppKit.dylib",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.keepcoder.Telegram;
@@ -9020,6 +9018,7 @@
 				SWIFT_OPTIMIZE_OBJECT_LIFETIME = YES;
 				SWIFT_REFLECTION_METADATA_LEVEL = none;
 				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = NO;
 			};
 			name = Release;
 		};
@@ -9060,7 +9059,7 @@
 				MARKETING_VERSION = 11.14.1;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CODE_SIGN_FLAGS = "";
-				OTHER_LDFLAGS = "$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/macosx/libswiftAppKit.dylib";
+				OTHER_LDFLAGS = "$(inherited)";
 				OTHER_SWIFT_FLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.keepcoder.Telegram.TelegramShare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -9112,7 +9111,7 @@
 				MARKETING_VERSION = 11.14.1;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CODE_SIGN_FLAGS = "";
-				OTHER_LDFLAGS = "$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/macosx/libswiftAppKit.dylib";
+				OTHER_LDFLAGS = "$(inherited)";
 				OTHER_SWIFT_FLAGS = "$(inherited)";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.keepcoder.Telegram.TelegramShare;
@@ -9237,7 +9236,6 @@
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-Wl,-ld_classic",
-					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/macosx/libswiftAppKit.dylib",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.keepcoder.Telegram;
@@ -9251,6 +9249,7 @@
 				SWIFT_OPTIMIZE_OBJECT_LIFETIME = YES;
 				SWIFT_REFLECTION_METADATA_LEVEL = none;
 				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = NO;
 			};
 			name = Debug;
 		};

@@ -86,6 +86,9 @@ private var driver:SUBasicUpdateDriver?
 private let host = SUHost(bundle: Bundle.main)
 
 func updateApplication(sharedContext: SharedAccountContext) {
+    guard appUpdateChecksEnabled else {
+        return
+    }
 
     
     let state = stateValue.with {$0.loadingState}
@@ -524,6 +527,9 @@ func setAppUpdaterBaseDomain(_ domain: String?) {
 
 
 func updateAppIfNeeded() {
+    guard appUpdateChecksEnabled else {
+        return
+    }
     let state = stateValue.with {$0.loadingState}
     
     switch state {
@@ -564,6 +570,10 @@ enum UpdaterSource : Equatable {
 
 
 private func resetUpdater() {
+    guard appUpdateChecksEnabled else {
+        disposable.set(nil)
+        return
+    }
     
     #if !GITHUB
         let update:()->Void = {
@@ -594,6 +604,12 @@ private func resetUpdater() {
 private var updaterSource: UpdaterSource? = nil
 
 func updater_resetWithUpdaterSource(_ source: UpdaterSource, force: Bool = true) {
+    guard appUpdateChecksEnabled else {
+        updaterSource = nil
+        driver = nil
+        disposable.set(nil)
+        return
+    }
     let state = stateValue.with { $0 }
     switch state.loadingState {
     case .readyToInstall:
@@ -620,6 +636,9 @@ func updater_resetWithUpdaterSource(_ source: UpdaterSource, force: Bool = true)
 
 
 private func trySwitchUpdaterBetweenSources() {
+    guard appUpdateChecksEnabled else {
+        return
+    }
     if let source = updaterSource {
         switch source {
         case let .external(context):
@@ -635,4 +654,3 @@ private func trySwitchUpdaterBetweenSources() {
 }
 
 #endif
-

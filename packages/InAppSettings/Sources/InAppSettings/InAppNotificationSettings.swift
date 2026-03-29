@@ -110,14 +110,15 @@ public struct InAppNotificationSettings: Codable, Equatable {
     public let showNotificationsOutOfFocus: Bool
     public let badgeEnabled: Bool
     public let requestUserAttention: Bool
+    public let muteIncomingCalls: Bool
     
     public let deprecatedNotice: Int32?
     
     public static var defaultSettings: InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: true, playSounds: true, tone: .default, displayPreviews: true, muteUntil: 0, totalUnreadCountDisplayStyle: .filtered, totalUnreadCountDisplayCategory: .chats, totalUnreadCountIncludeTags: .all, notifyAllAccounts: true, showNotificationsOutOfFocus: true, badgeEnabled: true, requestUserAttention: false, deprecatedNotice: nil)
+        return InAppNotificationSettings(enabled: true, playSounds: true, tone: .default, displayPreviews: true, muteUntil: 0, totalUnreadCountDisplayStyle: .filtered, totalUnreadCountDisplayCategory: .chats, totalUnreadCountIncludeTags: .all, notifyAllAccounts: true, showNotificationsOutOfFocus: true, badgeEnabled: true, requestUserAttention: false, muteIncomingCalls: false, deprecatedNotice: nil)
     }
     
-    init(enabled:Bool, playSounds: Bool, tone: PeerMessageSound, displayPreviews: Bool, muteUntil: Int32, totalUnreadCountDisplayStyle: TotalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: TotalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: PeerSummaryCounterTags, notifyAllAccounts: Bool, showNotificationsOutOfFocus: Bool, badgeEnabled: Bool, requestUserAttention: Bool, deprecatedNotice: Int32?) {
+    init(enabled:Bool, playSounds: Bool, tone: PeerMessageSound, displayPreviews: Bool, muteUntil: Int32, totalUnreadCountDisplayStyle: TotalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: TotalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: PeerSummaryCounterTags, notifyAllAccounts: Bool, showNotificationsOutOfFocus: Bool, badgeEnabled: Bool, requestUserAttention: Bool, muteIncomingCalls: Bool, deprecatedNotice: Int32?) {
         self.enabled = enabled
         self.playSounds = playSounds
         self.tone = tone
@@ -130,6 +131,7 @@ public struct InAppNotificationSettings: Codable, Equatable {
         self.showNotificationsOutOfFocus = showNotificationsOutOfFocus
         self.badgeEnabled = badgeEnabled
         self.requestUserAttention = requestUserAttention
+        self.muteIncomingCalls = muteIncomingCalls
         self.deprecatedNotice = deprecatedNotice
     }
     
@@ -153,6 +155,7 @@ public struct InAppNotificationSettings: Codable, Equatable {
         self.showNotificationsOutOfFocus = try container.decode(Int32.self, forKey: "snoof") != 0
         self.badgeEnabled = try container.decode(Bool.self, forKey: "badge")
         self.requestUserAttention = try container.decode(Bool.self, forKey: "requestUserAttention")
+        self.muteIncomingCalls = try container.decodeIfPresent(Bool.self, forKey: "muteIncomingCalls") ?? false
         self.deprecatedNotice = try container.decodeIfPresent(Int32.self, forKey: "deprecatedNotice1")
         
     }
@@ -172,58 +175,63 @@ public struct InAppNotificationSettings: Codable, Equatable {
         try container.encode(Int32(self.showNotificationsOutOfFocus ? 1 : 0), forKey: "snoof")
         try container.encode(self.badgeEnabled, forKey: "badge")
         try container.encode(self.requestUserAttention, forKey: "requestUserAttention")
+        try container.encode(self.muteIncomingCalls, forKey: "muteIncomingCalls")
         try container.encodeIfPresent(self.deprecatedNotice, forKey: "deprecatedNotice1")
     }
     
     public func withUpdatedEnables(_ enabled: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedPlaySounds(_ playSounds: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedTone(_ tone: PeerMessageSound) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedDisplayPreviews(_ displayPreviews: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedMuteUntil(_ muteUntil: Int32) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedTotalUnreadCountDisplayCategory(_ totalUnreadCountDisplayCategory: TotalUnreadCountDisplayCategory) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedTotalUnreadCountDisplayStyle(_ totalUnreadCountDisplayStyle: TotalUnreadCountDisplayStyle) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedNotifyAllAccounts(_ notifyAllAccounts: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: self.totalUnreadCountIncludeTags, notifyAllAccounts: notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedTotalUnreadCountIncludeTags(_ totalUnreadCountIncludeTags: PeerSummaryCounterTags) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedSnoof(_ showNotificationsOutOfFocus: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedBadgeEnabled(_ badgeEnabled: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     public func withUpdatedRequestUserAttention(_ requestUserAttention: Bool) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: requestUserAttention, deprecatedNotice: self.deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
+    }
+    
+    public func withUpdatedMuteIncomingCalls(_ muteIncomingCalls: Bool) -> InAppNotificationSettings {
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: muteIncomingCalls, deprecatedNotice: self.deprecatedNotice)
     }
     
     public func withUpdatedDeprecatedNotice(_ deprecatedNotice: Int32?) -> InAppNotificationSettings {
-        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, deprecatedNotice: deprecatedNotice)
+        return InAppNotificationSettings(enabled: self.enabled, playSounds: self.playSounds, tone: self.tone, displayPreviews: self.displayPreviews, muteUntil: self.muteUntil, totalUnreadCountDisplayStyle: self.totalUnreadCountDisplayStyle, totalUnreadCountDisplayCategory: self.totalUnreadCountDisplayCategory, totalUnreadCountIncludeTags: totalUnreadCountIncludeTags, notifyAllAccounts: self.notifyAllAccounts, showNotificationsOutOfFocus: self.showNotificationsOutOfFocus, badgeEnabled: self.badgeEnabled, requestUserAttention: self.requestUserAttention, muteIncomingCalls: self.muteIncomingCalls, deprecatedNotice: deprecatedNotice)
     }
 }
 

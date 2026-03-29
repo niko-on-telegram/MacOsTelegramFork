@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+APP_PATH="/Applications/Telegram.app"
+
+if pgrep -x "Telegram" >/dev/null 2>&1; then
+    echo "Telegram is running. Quit Telegram and run the installer again." >&2
+    exit 1
+fi
+
+if [ -e "$APP_PATH" ]; then
+    rm -rf "$APP_PATH"
+fi

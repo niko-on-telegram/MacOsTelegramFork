@@ -957,6 +957,9 @@ class AccountViewController : TelegramGenericViewController<AccountControllerVie
         }, ask: {
             
         }, openUpdateApp: { [weak self] in
+            guard appUpdateChecksEnabled else {
+                return
+            }
             guard let navigation = self?.navigation as? MajorNavigationController else {return}
             #if !APP_STORE
             navigation.push(AppUpdateViewController(), false)
@@ -1024,7 +1027,11 @@ class AccountViewController : TelegramGenericViewController<AccountControllerVie
         #if APP_STORE
             appUpdateState = .single(nil)
         #else
-        appUpdateState = appUpdateStateSignal |> map(Optional.init)
+        if appUpdateChecksEnabled {
+            appUpdateState = appUpdateStateSignal |> map(Optional.init)
+        } else {
+            appUpdateState = .single(nil)
+        }
         #endif
         
         
@@ -1274,5 +1281,4 @@ class AccountViewController : TelegramGenericViewController<AccountControllerVie
     }
 
 }
-
 

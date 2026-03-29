@@ -1,0 +1,85 @@
+name: Build Unsigned macOS Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+      - "release-*"
+
+concurrency:
+  group: unsigned-macos-pkg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-unsigned-pkg:
+    name: Build unsigned Release arm64 package
+    runs-on: macos-26
+    timeout-minutes: 180
+
+    permissions:
+      contents: read
+
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Rewrite submodule URLs to HTTPS
+        run: |
+          git config --global url."https://github.com/".insteadOf git@github.com:
+          git config --global url."https://gitlab.com/".insteadOf git@gitlab.com:
+          git submodule sync --recursive
+          git submodule update --init --recursive --jobs 4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install Homebrew dependencies
+        run: |
+          packages=(cmake ninja zlib autoconf libtool automake yasm pkg-config)
+          missing=()
+          for pkg in "${packages[@]}"; do
+            if ! brew list --versions "$pkg" >/dev/null 2>&1; then
+              missing+=("$pkg")
+            fi
+          done
+
+          if ((${#missing[@]})); then
+            brew install "${missing[@]}"
+          else
+            echo "All requested Homebrew packages are already installed."
+          fi
+
+      - name: Build unsigned package
+        id: build_pkg
+        run: ./ci/macos/build_unsigned_pkg.sh
+        env:
+          DERIVED_DATA_PATH: ${{ github.workspace }}/.ci-build/DerivedData
+          ARTIFACTS_DIR: ${{ github.workspace }}/.ci-artifacts
+          STAGE_DIR: ${{ github.workspace }}/.ci-build/pkg-root
+          RUN_CONFIGURE_FRAMEWORKS: "1"
+          SKIP_BUILD: "0"
+
+      - name: Upload unsigned artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-macos-unsigned-${{ steps.build_pkg.outputs.short_version }}-r${{ steps.build_pkg.outputs.bundle_version }}
+          path: |
+            .ci-artifacts/*.pkg
+            .ci-artifacts/*.zip
+            .ci-artifacts/*.txt
+            .ci-artifacts/*.log
+          if-no-files-found: error
+          retention-days: 14

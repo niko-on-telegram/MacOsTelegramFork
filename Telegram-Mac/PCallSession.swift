@@ -237,14 +237,15 @@ func getPrivateCallSessionData(_ account: Account, accountManager: AccountManage
         },
         voiceCallSettings(accountManager),
         proxySettings(accountManager: accountManager),
-        account.networkType
-    ) |> take(1) |> map { preferences, peer, voiceSettings, proxy, networkType in
+        account.networkType,
+        appNotificationSettings(accountManager: accountManager)
+    ) |> take(1) |> map { preferences, peer, voiceSettings, proxy, networkType, inAppSettings in
         
         let configuration = preferences.values[PreferencesKeys.voipConfiguration]?.get(VoipConfiguration.self) ?? VoipConfiguration.defaultValue
         let appConfiguration = preferences.values[PreferencesKeys.appConfiguration]?.get(AppConfiguration.self) ?? AppConfiguration.defaultValue
         let derivedState = preferences.values[ApplicationSpecificPreferencesKeys.voipDerivedState]?.get(VoipDerivedState.self) ?? VoipDerivedState.default
         
-        return PCallSession.InitialData(configuration: configuration, appConfiguration: appConfiguration, derivedState: derivedState, peer: peer, voiceSettings: voiceSettings, proxyServerSettings: proxy.effectiveActiveServer, networkType: networkType)
+        return PCallSession.InitialData(configuration: configuration, appConfiguration: appConfiguration, derivedState: derivedState, peer: peer, voiceSettings: voiceSettings, proxyServerSettings: proxy.effectiveActiveServer, networkType: networkType, inAppSettings: inAppSettings)
     }
 }
 
@@ -258,6 +259,7 @@ class PCallSession {
         let voiceSettings: VoiceCallSettings
         let proxyServerSettings: ProxyServerSettings?
         let networkType: NetworkType
+        let inAppSettings: InAppNotificationSettings
     }
     
     let peerId:PeerId
@@ -321,6 +323,7 @@ class PCallSession {
     
     private var player:CallAudioPlayer? = nil
     private var playingRingtone:Bool = false
+    private var muteIncomingCalls: Bool
     
     private var startTime:Double = 0
     private var callAcceptedTime:Double = 0
@@ -472,6 +475,7 @@ class PCallSession {
         self.enableStunMarking = false
         self.enableTCP = false
         self.preferredVideoCodec = nil
+        self.muteIncomingCalls = data.inAppSettings.muteIncomingCalls
         
         if self.isVideo {
             self.videoCapturer = OngoingCallVideoCapturer(devicesContext.currentCameraId ?? "")
@@ -510,6 +514,18 @@ class PCallSession {
                 self.ongoingContext?.switchAudioOutput(id)
             }
         }))
+        
+        self.settingsDisposable = (appNotificationSettings(accountManager: accountContext.sharedContext.accountManager)
+        |> deliverOnMainQueue).start(next: { [weak self] settings in
+            guard let self else {
+                return
+            }
+            let previous = self.muteIncomingCalls
+            self.muteIncomingCalls = settings.muteIncomingCalls
+            if previous != settings.muteIncomingCalls {
+                self.updateIncomingCallTonePreference()
+            }
+        })
         
         if let incomingConferenceSource = incomingConferenceSource {
             self.sessionStateDisposable.set((context.engine.data.subscribe(
@@ -580,6 +596,22 @@ class PCallSession {
         devicesListDisposable.set((devicesContext.signal |> deliverOnMainQueue).start(next: { [weak self] devices in
             self?.devices = devices
         }))
+    }
+    
+    private func updateIncomingCallTonePreference() {
+        guard !self.isOutgoing, let presentationState = self.presentationState else {
+            return
+        }
+        switch presentationState.state {
+        case .ringing:
+            if self.muteIncomingCalls {
+                self.stopTone()
+            } else {
+                self.playTone(.ringing)
+            }
+        default:
+            break
+        }
     }
     
     
@@ -1391,6 +1423,10 @@ class PCallSession {
     }
     
     private func playTone(_ tone:CallTone) {
+        if tone == .ringing && self.muteIncomingCalls && !self.isOutgoing {
+            stopTone()
+            return
+        }
         if let url = pathForTone(tone) {
             playTone(url, loops: loopsForTone(tone))
         }

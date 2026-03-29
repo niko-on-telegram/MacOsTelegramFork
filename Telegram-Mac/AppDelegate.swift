@@ -114,6 +114,7 @@ final class CodeSyntax {
 }
 
 let enableBetaFeatures = true
+let appUpdateChecksEnabled = false
 
 private(set) var appDelegate: AppDelegate?
 
@@ -1095,27 +1096,31 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
                                 execute(inapp: inApp(for: executeUrlAfterLogin.nsstring, context: context.context))
                             }
                             #if !APP_STORE
-                            networkDisposable.set((context.context.account.postbox.preferencesView(keys: [PreferencesKeys.networkSettings]) |> delay(5.0, queue: Queue.mainQueue()) |> deliverOnMainQueue).start(next: { settings in
-                                let settings = settings.values[PreferencesKeys.networkSettings]?.get(NetworkSettings.self)
-                                
-                                let applicationUpdateUrlPrefix: String?
-                                if let prefix = settings?.applicationUpdateUrlPrefix {
-                                    if prefix.range(of: "://") == nil {
-                                        applicationUpdateUrlPrefix = "https://" + prefix
+                            if appUpdateChecksEnabled {
+                                networkDisposable.set((context.context.account.postbox.preferencesView(keys: [PreferencesKeys.networkSettings]) |> delay(5.0, queue: Queue.mainQueue()) |> deliverOnMainQueue).start(next: { settings in
+                                    let settings = settings.values[PreferencesKeys.networkSettings]?.get(NetworkSettings.self)
+                                    
+                                    let applicationUpdateUrlPrefix: String?
+                                    if let prefix = settings?.applicationUpdateUrlPrefix {
+                                        if prefix.range(of: "://") == nil {
+                                            applicationUpdateUrlPrefix = "https://" + prefix
+                                        } else {
+                                            applicationUpdateUrlPrefix = prefix
+                                        }
                                     } else {
-                                        applicationUpdateUrlPrefix = prefix
+                                        applicationUpdateUrlPrefix = nil
                                     }
-                                } else {
-                                    applicationUpdateUrlPrefix = nil
-                                }
-                                setAppUpdaterBaseDomain(applicationUpdateUrlPrefix)
-                                #if STABLE || BETA || DEBUG
-                                updater_resetWithUpdaterSource(.internal(context: context.context))
-                                #else
-                                updater_resetWithUpdaterSource(.external(context: context.context))
-                                #endif
-                                
-                            }))
+                                    setAppUpdaterBaseDomain(applicationUpdateUrlPrefix)
+                                    #if STABLE || BETA || DEBUG
+                                    updater_resetWithUpdaterSource(.internal(context: context.context))
+                                    #else
+                                    updater_resetWithUpdaterSource(.external(context: context.context))
+                                    #endif
+                                    
+                                }))
+                            } else {
+                                networkDisposable.set(nil)
+                            }
                             #endif
                             
                             if let url = AppDelegate.eventProcessed {
@@ -1161,31 +1166,35 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
                                     showModal(with: context.modal, for: window, animated: presentAuthAnimated)
                                     
                                     #if !APP_STORE
-                                    networkDisposable.set((context.account.postbox.preferencesView(keys: [PreferencesKeys.networkSettings]) |> delay(5.0, queue: Queue.mainQueue()) |> deliverOnMainQueue).start(next: { settings in
-                                        let settings = settings.values[PreferencesKeys.networkSettings]?.get(NetworkSettings.self)
-                                        
-                                        let applicationUpdateUrlPrefix: String?
-                                        if let prefix = settings?.applicationUpdateUrlPrefix {
-                                            if prefix.range(of: "://") == nil {
-                                                applicationUpdateUrlPrefix = "https://" + prefix
+                                    if appUpdateChecksEnabled {
+                                        networkDisposable.set((context.account.postbox.preferencesView(keys: [PreferencesKeys.networkSettings]) |> delay(5.0, queue: Queue.mainQueue()) |> deliverOnMainQueue).start(next: { settings in
+                                            let settings = settings.values[PreferencesKeys.networkSettings]?.get(NetworkSettings.self)
+                                            
+                                            let applicationUpdateUrlPrefix: String?
+                                            if let prefix = settings?.applicationUpdateUrlPrefix {
+                                                if prefix.range(of: "://") == nil {
+                                                    applicationUpdateUrlPrefix = "https://" + prefix
+                                                } else {
+                                                    applicationUpdateUrlPrefix = prefix
+                                                }
                                             } else {
-                                                applicationUpdateUrlPrefix = prefix
+                                                applicationUpdateUrlPrefix = nil
                                             }
-                                        } else {
-                                            applicationUpdateUrlPrefix = nil
-                                        }
-                                        setAppUpdaterBaseDomain(applicationUpdateUrlPrefix)
-                                        #if STABLE
-                                        if let context = self.contextValue?.context {
-                                            updater_resetWithUpdaterSource(.internal(context: context))
-                                        } else {
-                                            updater_resetWithUpdaterSource(.external(context: nil))
-                                        }
-                                        #else
-                                        updater_resetWithUpdaterSource(.external(context: self.contextValue?.context))
-                                        #endif
-                                        
-                                    }))
+                                            setAppUpdaterBaseDomain(applicationUpdateUrlPrefix)
+                                            #if STABLE
+                                            if let context = self.contextValue?.context {
+                                                updater_resetWithUpdaterSource(.internal(context: context))
+                                            } else {
+                                                updater_resetWithUpdaterSource(.external(context: nil))
+                                            }
+                                            #else
+                                            updater_resetWithUpdaterSource(.external(context: self.contextValue?.context))
+                                            #endif
+                                            
+                                        }))
+                                    } else {
+                                        networkDisposable.set(nil)
+                                    }
                                     #endif
                                     
                                     
@@ -1288,6 +1297,9 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
 
 
     @IBAction func checkForUpdates(_ sender: Any) {
+        guard appUpdateChecksEnabled else {
+            return
+        }
         #if !APP_STORE
             showModal(with: InputDataModalController(AppUpdateViewController()), for: window)
             #if STABLE
@@ -1302,16 +1314,38 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
         #endif
     }
     
+    private func removeCheckForUpdatesMenuItem() {
+        guard let menu = NSApp.mainMenu?.item(at: 0)?.submenu, let updateItem = menu.item(withTag: 1000) else {
+            return
+        }
+        let updateIndex = menu.index(of: updateItem)
+        menu.removeItem(updateItem)
+        
+        if updateIndex > 0,
+           let previousItem = menu.item(at: updateIndex - 1),
+           previousItem.isSeparatorItem,
+           updateIndex < menu.numberOfItems,
+           let nextItem = menu.item(at: updateIndex),
+           nextItem.isSeparatorItem {
+            menu.removeItem(at: updateIndex)
+        }
+    }
+    
     override func awakeFromNib() {
         #if APP_STORE
-        if let menu = NSApp.mainMenu?.item(at: 0)?.submenu, let sparkleItem = menu.item(withTag: 1000) {
-            menu.removeItem(sparkleItem)
+        removeCheckForUpdatesMenuItem()
+        #else
+        if !appUpdateChecksEnabled {
+            removeCheckForUpdatesMenuItem()
         }
         #endif
     }
     
     
     @objc func checkUpdates() {
+        guard appUpdateChecksEnabled else {
+            return
+        }
         #if !APP_STORE
         showModal(with: InputDataModalController(AppUpdateViewController()), for: window)
         #endif

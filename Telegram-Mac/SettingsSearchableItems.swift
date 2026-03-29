@@ -12,6 +12,7 @@ import TGUIKit
 import SwiftSignalKit
 import TelegramCore
 import InAppSettings
+import Localization
 
 enum SettingsSearchableItemIcon {
     case profile
@@ -369,6 +370,9 @@ private func notificationSearchableItems(context: AccountContext, settings: Glob
         }),
         SettingsSearchableItem(id: .notifications(2), title: strings().notificationSettingsMessagesPreview, alternate: synonyms(strings().settingsSearchSynonymsNotificationsMessageNotificationsPreview), icon: icon, breadcrumbs: [strings().accountSettingsNotifications, strings().notificationSettingsToggleNotificationsHeader], present: { context, _, present in
             presentNotificationSettings(context, present, .messagePreviews)
+        }),
+        SettingsSearchableItem(id: .notifications(3), title: _NSLocalizedString("NotificationSettings.MuteIncomingCalls"), alternate: ["mute incoming calls", "call ringtone", "disable call sound", "без звука входящих звонков", "отключить звук звонков"], icon: icon, breadcrumbs: [strings().accountSettingsNotifications, strings().notificationSettingsSoundEffects], present: { context, _, present in
+            presentNotificationSettings(context, present, .muteIncomingCalls)
         }),
 //        SettingsSearchableItem(id: .notifications(18), title: strings().notificationSettingsIncludeGroups, alternate: synonyms(strings().settingsSearchSynonymsNotificationsBadgeIncludeMutedPublicGroups), icon: icon, breadcrumbs: [strings().accountSettingsNotifications, strings().notificationSettingsBadgeHeader], present: { context, _, present in
 //            presentNotificationSettings(context, present, .includePublicGroups)
@@ -763,7 +767,5 @@ func settingsSearchableItems(context: AccountContext, archivedStickerPacks: Sign
             return allItems
     }
 }
-
-
 
 

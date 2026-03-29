@@ -31,6 +31,14 @@ LIBDAV1D_PATH="${BUILD_DIR}../../dav1d/build/dav1d"
 
 FF_VERSION="7.1"
 SOURCE="$SOURCE_DIR/ffmpeg-$FF_VERSION"
+if [ ! -d "$SOURCE" ]; then
+    for candidate in "$SOURCE_DIR"/ffmpeg-*; do
+        if [ -d "$candidate" ]; then
+            SOURCE="$candidate"
+            break
+        fi
+    done
+fi
 
 GAS_PREPROCESSOR_PATH="$SOURCE_DIR/gas-preprocessor.pl"
 

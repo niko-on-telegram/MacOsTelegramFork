@@ -12,6 +12,7 @@ import SwiftSignalKit
 import Postbox
 import TelegramCore
 import InAppSettings
+import Localization
 
 private let modernSoundsNamePaths: [String] = [
     strings().notificationsSoundNote,
@@ -127,6 +128,7 @@ func fileNameForNotificationSound(postbox: Postbox, sound: PeerMessageSound, def
 enum NotificationsAndSoundsEntryTag: ItemListItemTag {
     case allAccounts
     case messagePreviews
+    case muteIncomingCalls
     case includeChannels
     case unreadCountCategory
     case joinedNotifications
@@ -138,6 +140,8 @@ enum NotificationsAndSoundsEntryTag: ItemListItemTag {
             return .general(_id_all_accounts)
         case .messagePreviews:
             return .general(_id_message_preview)
+        case .muteIncomingCalls:
+            return .general(_id_mute_incoming_calls)
         case .includeChannels:
             return .general(_id_include_channels)
         case .unreadCountCategory:
@@ -173,9 +177,10 @@ private final class NotificationArguments {
     let toggleBadge: (Bool)->Void
     let toggleRequestUserAttention: ()->Void
     let toggleInAppSounds:(Bool)->Void
+    let toggleMuteIncomingCalls:(Bool)->Void
     let toggleChats:()->Void
     let toggleIncomingCalls:()->Void
-    init(resetAllNotifications: @escaping() -> Void, toggleMessagesPreview:@escaping() -> Void, toggleNotifications:@escaping() -> Void, notificationTone:@escaping() -> Void, toggleIncludeUnreadChats:@escaping(Bool) -> Void, toggleCountUnreadMessages:@escaping(Bool) -> Void, toggleIncludeGroups:@escaping(Bool) -> Void, toggleIncludeChannels:@escaping(Bool) -> Void, allAcounts: @escaping()-> Void, snoof: @escaping()-> Void, updateJoinedNotifications: @escaping(Bool) -> Void, toggleBadge: @escaping(Bool)->Void, toggleRequestUserAttention: @escaping ()->Void, toggleInAppSounds: @escaping(Bool)->Void, toggleChats: @escaping()->Void, toggleIncomingCalls:@escaping()->Void) {
+    init(resetAllNotifications: @escaping() -> Void, toggleMessagesPreview:@escaping() -> Void, toggleNotifications:@escaping() -> Void, notificationTone:@escaping() -> Void, toggleIncludeUnreadChats:@escaping(Bool) -> Void, toggleCountUnreadMessages:@escaping(Bool) -> Void, toggleIncludeGroups:@escaping(Bool) -> Void, toggleIncludeChannels:@escaping(Bool) -> Void, allAcounts: @escaping()-> Void, snoof: @escaping()-> Void, updateJoinedNotifications: @escaping(Bool) -> Void, toggleBadge: @escaping(Bool)->Void, toggleRequestUserAttention: @escaping ()->Void, toggleInAppSounds: @escaping(Bool)->Void, toggleMuteIncomingCalls:@escaping(Bool)->Void, toggleChats: @escaping()->Void, toggleIncomingCalls:@escaping()->Void) {
         self.resetAllNotifications = resetAllNotifications
         self.toggleMessagesPreview = toggleMessagesPreview
         self.toggleNotifications = toggleNotifications
@@ -190,6 +195,7 @@ private final class NotificationArguments {
         self.toggleBadge = toggleBadge
         self.toggleRequestUserAttention = toggleRequestUserAttention
         self.toggleInAppSounds = toggleInAppSounds
+        self.toggleMuteIncomingCalls = toggleMuteIncomingCalls
         self.toggleChats = toggleChats
         self.toggleIncomingCalls = toggleIncomingCalls
     }
@@ -214,6 +220,7 @@ private let _id_turnon_notifications = InputDataIdentifier("_id_turnon_notificat
 private let _id_turnon_notifications_title = InputDataIdentifier("_id_turnon_notifications_title")
 
 private let _id_message_effect = InputDataIdentifier("_id_message_effect")
+private let _id_mute_incoming_calls = InputDataIdentifier("_id_mute_incoming_calls")
 
 
 private let _id_accept_calls = InputDataIdentifier("_id_accept_calls")
@@ -328,7 +335,12 @@ private func notificationEntries(state: State, settings:InAppNotificationSetting
     entries.append(InputDataEntry.desc(sectionId: sectionId, index: index, text: .plain(strings().notificationSettingsSoundEffects), data: InputDataGeneralTextData(viewType: .textTopItem)))
     index += 1
 
-    entries.append(InputDataEntry.general(sectionId: sectionId, index: index, value: .none, error: nil, identifier: _id_message_effect, data: InputDataGeneralData(name: strings().notificationSettingsSendMessageEffect, color: theme.colors.text, type: .switchable(FastSettings.inAppSounds), viewType: .singleItem, action: {
+    entries.append(InputDataEntry.general(sectionId: sectionId, index: index, value: .none, error: nil, identifier: _id_mute_incoming_calls, data: InputDataGeneralData(name: _NSLocalizedString("NotificationSettings.MuteIncomingCalls"), color: theme.colors.text, type: .switchable(settings.muteIncomingCalls), viewType: .firstItem, action: {
+        arguments.toggleMuteIncomingCalls(!settings.muteIncomingCalls)
+    })))
+    index += 1
+
+    entries.append(InputDataEntry.general(sectionId: sectionId, index: index, value: .none, error: nil, identifier: _id_message_effect, data: InputDataGeneralData(name: strings().notificationSettingsSendMessageEffect, color: theme.colors.text, type: .switchable(FastSettings.inAppSounds), viewType: .lastItem, action: {
         arguments.toggleInAppSounds(!FastSettings.inAppSounds)
     })))
     index += 1
@@ -468,6 +480,10 @@ func NotificationPreferencesController(_ context: AccountContext, focusOnItemTag
         }).start()
     }, toggleInAppSounds: { value in
         FastSettings.toggleInAppSouds(value)
+    }, toggleMuteIncomingCalls: { value in
+        _ = updateInAppNotificationSettingsInteractively(accountManager: context.sharedContext.accountManager, { settings in
+            return settings.withUpdatedMuteIncomingCalls(value)
+        }).start()
     }, toggleChats: {
         let session: RecentAccountSession? = stateValue.with { $0.session }
         updateState { current in
