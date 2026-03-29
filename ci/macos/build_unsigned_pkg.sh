@@ -12,6 +12,7 @@ STAGE_DIR="${STAGE_DIR:-$ROOT_DIR/.ci-build/pkg-root}"
 PKG_IDENTIFIER="${PKG_IDENTIFIER:-org.telegram.macos.unsigned}"
 RUN_CONFIGURE_FRAMEWORKS="${RUN_CONFIGURE_FRAMEWORKS:-1}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
+APPLY_LOCAL_PATCHES="${APPLY_LOCAL_PATCHES:-1}"
 PACKAGE_BASENAME_PREFIX="${PACKAGE_BASENAME_PREFIX:-Telegram}"
 
 PKG_SCRIPTS_DIR="$ROOT_DIR/ci/macos/pkg-scripts"
@@ -47,6 +48,13 @@ require_file "$COMPONENT_PLIST"
 require_file "$PKG_SCRIPTS_DIR/preinstall"
 
 cd "$ROOT_DIR"
+
+if [[ "$APPLY_LOCAL_PATCHES" == "1" ]]; then
+  log "Applying local submodule patches"
+  bash "$ROOT_DIR/ci/macos/apply_submodule_patches.sh"
+else
+  log "Skipping local submodule patches"
+fi
 
 if [[ "$RUN_CONFIGURE_FRAMEWORKS" == "1" ]]; then
   log "Configuring bundled frameworks"

@@ -1,0 +1,43 @@
+diff --git a/src/api/candidate.h b/src/api/candidate.h
+index 0aa75aa1..12cfb06f 100644
+--- a/src/api/candidate.h
++++ b/src/api/candidate.h
+@@ -55,7 +55,7 @@ class RTC_EXPORT Candidate {
+             uint32_t priority,
+             absl::string_view username,
+             absl::string_view password,
+-            absl::string_view type ABSL_ATTRIBUTE_LIFETIME_BOUND,
++            absl::string_view type,
+             uint32_t generation,
+             absl::string_view foundation,
+             uint16_t network_id = 0,
+@@ -105,7 +105,7 @@ class RTC_EXPORT Candidate {
+   // cricket::LOCAL_PORT_TYPE). The type should really be an enum rather than a
+   // string, but until we make that change the lifetime attribute helps us lock
+   // things down. See also the `Port` class.
+-  void set_type(absl::string_view type ABSL_ATTRIBUTE_LIFETIME_BOUND) {
++  void set_type(absl::string_view type) {
+     Assign(type_, type);
+   }
+ 
+diff --git a/src/p2p/base/port.h b/src/p2p/base/port.h
+index a3214af1..9a8a62ad 100644
+--- a/src/p2p/base/port.h
++++ b/src/p2p/base/port.h
+@@ -179,14 +179,14 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+   // 30 seconds.
+   enum class State { INIT, KEEP_ALIVE_UNTIL_PRUNED, PRUNED };
+   Port(webrtc::TaskQueueBase* thread,
+-       absl::string_view type ABSL_ATTRIBUTE_LIFETIME_BOUND,
++       absl::string_view type,
+        rtc::PacketSocketFactory* factory,
+        const rtc::Network* network,
+        absl::string_view username_fragment,
+        absl::string_view password,
+        const webrtc::FieldTrialsView* field_trials = nullptr);
+   Port(webrtc::TaskQueueBase* thread,
+-       absl::string_view type ABSL_ATTRIBUTE_LIFETIME_BOUND,
++       absl::string_view type,
+        rtc::PacketSocketFactory* factory,
+        const rtc::Network* network,
+        uint16_t min_port,

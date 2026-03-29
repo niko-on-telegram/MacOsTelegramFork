@@ -43,6 +43,9 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive --jobs 4
 
+      - name: Apply local submodule patches
+        run: ./ci/macos/apply_submodule_patches.sh
+
       - name: Show Xcode version
         run: xcodebuild -version
 
@@ -69,6 +72,7 @@ jobs:
           DERIVED_DATA_PATH: ${{ github.workspace }}/.ci-build/DerivedData
           ARTIFACTS_DIR: ${{ github.workspace }}/.ci-artifacts
           STAGE_DIR: ${{ github.workspace }}/.ci-build/pkg-root
+          APPLY_LOCAL_PATCHES: "0"
           RUN_CONFIGURE_FRAMEWORKS: "1"
           SKIP_BUILD: "0"
 
