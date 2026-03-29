@@ -87,6 +87,10 @@ APP_PATH="$DERIVED_DATA_PATH/Build/Products/$CONFIGURATION/Telegram.app"
 INFO_PLIST="$APP_PATH/Contents/Info.plist"
 require_file "$INFO_PLIST"
 
+log "Refreshing ad-hoc signature for $APP_PATH"
+codesign --force --deep --sign - --timestamp=none "$APP_PATH"
+codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
 SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
 BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")"
 PACKAGE_BASENAME="${PACKAGE_BASENAME_PREFIX}-${SHORT_VERSION}-arm64-unsigned-r${BUNDLE_VERSION}"
@@ -97,6 +101,7 @@ log "Packaging $APP_PATH"
 rm -rf "$STAGE_DIR" "$PKG_PATH" "$ZIP_PATH"
 mkdir -p "$STAGE_DIR/Applications"
 ditto "$APP_PATH" "$STAGE_DIR/Applications/Telegram.app"
+codesign --verify --deep --strict --verbose=2 "$STAGE_DIR/Applications/Telegram.app"
 
 pkgbuild \
   --root "$STAGE_DIR" \
