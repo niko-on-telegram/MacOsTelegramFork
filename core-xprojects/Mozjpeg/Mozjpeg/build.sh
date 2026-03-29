@@ -8,6 +8,7 @@ set -x
 SOURCE_DIR="$1"
 BUILD_DIR=$(echo "$(cd "$(dirname "$3")"; pwd -P)/$(basename "$3")")
 OUTPUTNAME="libjpeg.a"
+TARGET_ARCHS="${ARCHS:-arm64 x86_64}"
 
 MACOS_PLATFORMDIR="$PLATFORM_DIR"
 MACOS_SYSROOT=($SDK_DIR)
@@ -18,7 +19,7 @@ cd "$BUILD_DIR"
 mkdir -p build
 cd build
 
-for ARCH in $ARCHS
+for ARCH in $TARGET_ARCHS
 do
 
 export CFLAGS="-Wall -arch $ARCH -mmacosx-version-min=$DEPLOYMENT_TARGET -funwind-tables"
@@ -47,19 +48,20 @@ done
 cd "$BUILD_DIR"
 cd build
 
-ARCH_COUNT=( $ARCHS )
+ARCH_COUNT=( $TARGET_ARCHS )
 ARCH_COUNT=${#ARCH_COUNT[@]}
 if [[ $ARCH_COUNT -gt 1 ]] ; then
 LIBRARIES=""
-for ARCH in $ARCHS
+for ARCH in $TARGET_ARCHS
 do
 LIBRARIES="$LIBRARIES ${BUILD_DIR}build/$ARCH/$OUTPUTNAME"
 done
 lipo -create -output $OUTPUTNAME $LIBRARIES
 else
-mv "${BUILD_DIR}build/$ARCHS/$OUTPUTNAME" "${BUILD_DIR}build/$OUTPUTNAME"
+mv "${BUILD_DIR}build/${TARGET_ARCHS}/$OUTPUTNAME" "${BUILD_DIR}build/$OUTPUTNAME"
 fi
 
-mv "${BUILD_DIR}build/x86_64/jconfigint.h" "${BUILD_DIR}build/jconfigint.h"
-mv "${BUILD_DIR}build/x86_64/jconfig.h" "${BUILD_DIR}build/jconfig.h"
+HEADER_ARCH="${TARGET_ARCHS%% *}"
+mv "${BUILD_DIR}build/${HEADER_ARCH}/jconfigint.h" "${BUILD_DIR}build/jconfigint.h"
+mv "${BUILD_DIR}build/${HEADER_ARCH}/jconfig.h" "${BUILD_DIR}build/jconfig.h"
 cp -r "${BUILD_DIR}../../submodules/telegram-ios/third-party/mozjpeg/mozjpeg/" "${BUILD_DIR}build/"

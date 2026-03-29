@@ -75,6 +75,7 @@ jobs:
           APPLY_LOCAL_PATCHES: "0"
           RUN_CONFIGURE_FRAMEWORKS: "1"
           SKIP_BUILD: "0"
+          TELEGRAM_MACOS_ARCHS: "arm64"
 
       - name: Upload build logs
         if: ${{ always() }}

@@ -5,6 +5,7 @@ set -x
 
 declare -a libs=("OpenH264" "OpenSSL" "libopus" "libvpx" "mozjpeg" "libwebp" "dav1d" "ffmpeg" "webrtc" "tde2e")
 declare -a libname=("OpenH264" "OpenSSLEncryption" "libopus" "libvpx" "Mozjpeg" "libwebp" "dav1d" "ffmpeg" "webrtc" "tde2e")
+TARGET_ARCHS="${TELEGRAM_MACOS_ARCHS:-arm64 x86_64}"
 
 arraylength=${#libs[@]}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
@@ -51,7 +52,9 @@ do
         $COMMON_SETUP \
         -scheme "${FWNAME}" \
         -derivedDataPath "${DERIVED_DATA_PATH}" \
-        -destination 'generic/platform=macOS'
+        -destination 'generic/platform=macOS' \
+        ARCHS="${TARGET_ARCHS}" \
+        ONLY_ACTIVE_ARCH=YES
 
 done
 

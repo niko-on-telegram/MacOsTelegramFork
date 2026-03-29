@@ -6,6 +6,7 @@ set -x
 SOURCE_DIR="$1"
 BUILD_DIR="$2"
 OPENSSL_DIR="$3"
+TARGET_ARCHS="${ARCHS:-arm64 x86_64}"
 
 if [ -z "$SOURCE_DIR" ] || [ -z "$BUILD_DIR" ] || [ -z "$OPENSSL_DIR" ]; then
     echo "Usage: $0 SOURCE_DIR BUILD_DIR OPENSSL_DIR"
@@ -20,6 +21,20 @@ options="$options -DOPENSSL_FOUND=1"
 options="$options -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/include"
 options="$options -DCMAKE_BUILD_TYPE=Release"
 
+build_one_arch() {
+    arch="$1"
+    arch_dir="$BUILD_DIR/$arch"
+    echo "Building for ${arch}..."
+    rm -rf "$arch_dir"
+    mkdir -p "$arch_dir"
+    pushd "$arch_dir"
+    cmake "$SOURCE_DIR" \
+        -DCMAKE_OSX_ARCHITECTURES="$arch" \
+        $options
+    cmake --build . --target tde2e -j$(sysctl -n hw.ncpu)
+    popd
+}
+
 # Step 1: Generate TDLib source files once
 GEN_DIR="$BUILD_DIR/native-gen"
 mkdir -p "$GEN_DIR"
@@ -28,48 +43,38 @@ cmake -DTD_GENERATE_SOURCE_FILES=ON "$SOURCE_DIR"
 cmake --build . -- -j$(sysctl -n hw.ncpu)
 popd
 
-# Step 2: Build for arm64
-echo "Building for arm64..."
-ARM64_DIR="$BUILD_DIR/arm64"
-mkdir -p "$ARM64_DIR"
-pushd "$ARM64_DIR"
-
-cmake "$SOURCE_DIR" \
-    -DCMAKE_OSX_ARCHITECTURES=arm64 \
-    $options
-
-cmake --build . --target tde2e -j$(sysctl -n hw.ncpu)
-popd
-
-# Step 3: Build for x86_64
-echo "Building for x86_64..."
-X86_64_DIR="$BUILD_DIR/x86_64"
-mkdir -p "$X86_64_DIR"
-pushd "$X86_64_DIR"
-
-cmake "$SOURCE_DIR" \
-    -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-    $options
-
-cmake --build . --target tde2e -j$(sysctl -n hw.ncpu)
-popd
+FIRST_ARCH=""
+TDE2E_INPUTS=""
+TDUTILS_INPUTS=""
+ARCH_COUNT=0
+for arch in $TARGET_ARCHS; do
+    build_one_arch "$arch"
+    if [ -z "$FIRST_ARCH" ]; then
+        FIRST_ARCH="$arch"
+    fi
+    TDE2E_INPUTS="$TDE2E_INPUTS $BUILD_DIR/$arch/tde2e/libtde2e.a"
+    TDUTILS_INPUTS="$TDUTILS_INPUTS $BUILD_DIR/$arch/tdutils/libtdutils.a"
+    ARCH_COUNT=$((ARCH_COUNT + 1))
+done
 
 # Step 4: Create universal binary
 echo "Creating universal binary..."
 UNIVERSAL_DIR="$BUILD_DIR/tde2e"
 mkdir -p "$UNIVERSAL_DIR/lib"
 
-lipo -create \
-    "$ARM64_DIR/tde2e/libtde2e.a" \
-    "$X86_64_DIR/tde2e/libtde2e.a" \
-    -output "$UNIVERSAL_DIR/lib/libtde2e.a"
+if [ "$ARCH_COUNT" -gt 1 ]; then
+    lipo -create $TDE2E_INPUTS -output "$UNIVERSAL_DIR/lib/libtde2e.a"
+else
+    cp "$BUILD_DIR/$FIRST_ARCH/tde2e/libtde2e.a" "$UNIVERSAL_DIR/lib/libtde2e.a"
+fi
 
 echo "Universal binary created at $UNIVERSAL_DIR/lib/libtde2e.a"
 
 
-lipo -create \
-    "$ARM64_DIR/tdutils/libtdutils.a" \
-    "$X86_64_DIR/tdutils/libtdutils.a" \
-    -output "$UNIVERSAL_DIR/lib/libtdutils.a"
+if [ "$ARCH_COUNT" -gt 1 ]; then
+    lipo -create $TDUTILS_INPUTS -output "$UNIVERSAL_DIR/lib/libtdutils.a"
+else
+    cp "$BUILD_DIR/$FIRST_ARCH/tdutils/libtdutils.a" "$UNIVERSAL_DIR/lib/libtdutils.a"
+fi
 
 echo "Universal binary created at $UNIVERSAL_DIR/lib/libtdutils.a"
