@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: false
@@ -78,7 +78,7 @@ jobs:
 
       - name: Upload build logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: telegram-macos-unsigned-logs-${{ github.run_number }}-${{ github.run_attempt }}
           include-hidden-files: true
@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload unsigned artifacts
         if: ${{ success() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: telegram-macos-unsigned-${{ steps.build_pkg.outputs.short_version }}-r${{ steps.build_pkg.outputs.bundle_version }}
           include-hidden-files: true
