@@ -28,6 +28,8 @@ jobs:
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
+      TELEGRAM_MACOS_ARCHS: "arm64"
+      FRAMEWORKS_CACHE_VERSION: "v1"
 
     steps:
       - name: Checkout source
@@ -49,7 +51,74 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Compute frameworks cache key
+        id: frameworks_cache_key
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cache_inputs="$(mktemp)"
+
+          {
+            printf 'frameworks-cache-version=%s\n' "$FRAMEWORKS_CACHE_VERSION"
+            printf 'target-archs=%s\n' "$TELEGRAM_MACOS_ARCHS"
+            xcodebuild -version
+            git submodule status --recursive
+
+            git ls-files \
+              .gitmodules \
+              scripts/configure_frameworks.sh \
+              ci/macos/apply_submodule_patches.sh \
+              ci/patches \
+              core-xprojects \
+            | LC_ALL=C sort \
+            | while IFS= read -r path; do
+                shasum -a 256 "$path"
+              done
+          } > "$cache_inputs"
+
+          cache_key="$(shasum -a 256 "$cache_inputs" | awk '{print $1}')"
+          printf 'key=%s\n' "$cache_key" >> "$GITHUB_OUTPUT"
+
+      - name: Restore configured frameworks cache
+        id: frameworks_cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-xcode-frameworks-${{ steps.frameworks_cache_key.outputs.key }}
+          path: |
+            core-xprojects/OpenH264/build
+            core-xprojects/openssl/build
+            core-xprojects/libopus/build
+            core-xprojects/libvpx/build
+            core-xprojects/Mozjpeg/build
+            core-xprojects/libwebp/build
+            core-xprojects/dav1d/build
+            core-xprojects/ffmpeg/build
+            core-xprojects/webrtc/build
+            core-xprojects/tde2e/build
+            submodules/telegram-ios/submodules/TelegramCore/FlatSerialization/Sources
+            submodules/telegram-ios/submodules/OpusBinding/SharedHeaders
+            submodules/telegram-ios/submodules/FFMpegBinding/SharedHeaders
+            submodules/telegram-ios/submodules/OpenSSLEncryptionProvider/SharedHeaders
+            submodules/telegram-ios/third-party/td/TdBinding/SharedHeaders
+            submodules/tgcalls/SharedHeaders
+            submodules/libwebp/SharedHeaders
+            submodules/Mozjpeg/SharedHeaders
+
+      - name: Decide whether to rebuild frameworks
+        id: configure_frameworks
+        shell: bash
+        run: |
+          if [[ "${{ steps.frameworks_cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "run_configure=0" >> "$GITHUB_OUTPUT"
+            echo "Using cached configure_frameworks outputs."
+          else
+            echo "run_configure=1" >> "$GITHUB_OUTPUT"
+            echo "No frameworks cache hit; configure_frameworks will run."
+          fi
+
       - name: Install Homebrew dependencies
+        if: ${{ steps.configure_frameworks.outputs.run_configure == '1' }}
         run: |
           packages=(cmake ninja meson zlib autoconf libtool automake yasm nasm pkg-config)
           missing=()
@@ -73,9 +142,9 @@ jobs:
           ARTIFACTS_DIR: ${{ github.workspace }}/.ci-artifacts
           STAGE_DIR: ${{ github.workspace }}/.ci-build/pkg-root
           APPLY_LOCAL_PATCHES: "0"
-          RUN_CONFIGURE_FRAMEWORKS: "1"
+          RUN_CONFIGURE_FRAMEWORKS: ${{ steps.configure_frameworks.outputs.run_configure }}
           SKIP_BUILD: "0"
-          TELEGRAM_MACOS_ARCHS: "arm64"
+          TELEGRAM_MACOS_ARCHS: ${{ env.TELEGRAM_MACOS_ARCHS }}
 
       - name: Upload build logs
         if: ${{ always() }}
