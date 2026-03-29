@@ -51,7 +51,7 @@ jobs:
 
       - name: Install Homebrew dependencies
         run: |
-          packages=(cmake ninja zlib autoconf libtool automake yasm nasm pkg-config)
+          packages=(cmake ninja meson zlib autoconf libtool automake yasm nasm pkg-config)
           missing=()
           for pkg in "${packages[@]}"; do
             if ! brew list --versions "$pkg" >/dev/null 2>&1; then
@@ -81,6 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: telegram-macos-unsigned-logs-${{ github.run_number }}-${{ github.run_attempt }}
+          include-hidden-files: true
           path: |
             .ci-artifacts/*.txt
             .ci-artifacts/*.log
@@ -92,6 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: telegram-macos-unsigned-${{ steps.build_pkg.outputs.short_version }}-r${{ steps.build_pkg.outputs.bundle_version }}
+          include-hidden-files: true
           path: |
             .ci-artifacts/*.pkg
             .ci-artifacts/*.zip
