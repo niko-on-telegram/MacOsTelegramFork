@@ -5,6 +5,7 @@ set -e
 
 SRC_DIR="$1"
 BUILD_DIR=$(echo "$(cd "$(dirname "$3")"; pwd -P)/$(basename "$3")")
+TARGET_ARCHS="${ARCHS:-arm64 x86_64}"
 
 
 
@@ -159,8 +160,12 @@ function build_for ()
 # patch "$SOURCE_DIR/Configurations/10-main.conf" < "$PWD/OpenSSLEncryption/patch-conf.diff" || exit 1
 
 
-for ARCH in $ARCHS
+FIRST_ARCH=""
+for ARCH in $TARGET_ARCHS
 do
+  if [ -z "$FIRST_ARCH" ]; then
+    FIRST_ARCH="$ARCH"
+  fi
   build_for darwin64-$ARCH-cc $ARCH MAC
   mkdir build/$ARCH
   mv "build/${NAME}/libssl.a" "build/$ARCH/libssl.a"
@@ -168,14 +173,14 @@ do
 done
 
 
-ARCH_COUNT=( $ARCHS )
+ARCH_COUNT=( $TARGET_ARCHS )
 ARCH_COUNT=${#ARCH_COUNT[@]}
+mkdir -p ${BUILD_DIR}build/openssl/lib
+mv $SOURCE_DIR/include ${BUILD_DIR}build/openssl/include
 if [[ $ARCH_COUNT -gt 1 ]] ; then
 LIBSSLA=""
 LIBCRYPTO=""
-mkdir -p ${BUILD_DIR}build/openssl/lib
-mv $SOURCE_DIR/include ${BUILD_DIR}build/openssl/include
-for ARCH in $ARCHS
+for ARCH in $TARGET_ARCHS
 do
 LIBSSLA="$LIBSSLA ${BUILD_DIR}build/$ARCH/libssl.a"
 LIBCRYPTO="$LIBCRYPTO ${BUILD_DIR}build/$ARCH/libcrypto.a"
@@ -183,8 +188,8 @@ done
 lipo -create -output ${BUILD_DIR}build/openssl/lib/libssl.a $LIBSSLA
 lipo -create -output ${BUILD_DIR}build/openssl/lib/libcrypto.a $LIBCRYPTO
 else
-mv "${BUILD_DIR}build/$ARCHS/libssl.a" "${BUILD_DIR}build/libssl.a"
-mv "${BUILD_DIR}build/$ARCHS/libcrypto.a" "${BUILD_DIR}build/libcrypto.a"
+mv "${BUILD_DIR}build/$FIRST_ARCH/libssl.a" "${BUILD_DIR}build/openssl/lib/libssl.a"
+mv "${BUILD_DIR}build/$FIRST_ARCH/libcrypto.a" "${BUILD_DIR}build/openssl/lib/libcrypto.a"
 fi
 
 
